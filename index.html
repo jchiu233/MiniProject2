@@ -2,103 +2,75 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Mini Project 2 – Course Explorer</title>
+    <title>Course Explorer</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-    <header>
-        <h1>Course Explorer</h1>
-        <p>Select a JSON file, then filter and sort the courses.</p>
-    </header>
 
-    <!-- Error message area -->
-    <section id="error-area" class="hidden"></section>
+<h1 class="title">Course Explorer</h1>
 
-    <!-- Data loading area -->
-    <section id="load-area">
-        <h2>1. Load Course Data</h2>
-        <input type="file" id="file-input" accept=".json">
-        <p class="hint">Choose a JSON file containing course data (e.g., courses.json).</p>
-    </section>
+<!-- LOAD JSON -->
+<section class="load-section">
+    <h2>Load Courses (JSON)</h2>
+    <input type="file" id="fileInput" accept=".json">
+    <p id="errorBox" class="error hidden"></p>
+</section>
 
-    <!-- Filter + sort controls -->
-    <section id="controls-area">
-        <h2>2. Filters & Sorting</h2>
-        <div id="filters">
-            <div class="filter-group">
-                <label for="filter-department">Department:</label>
-                <select id="filter-department">
-                    <option value="all">All</option>
-                </select>
-            </div>
+<!-- FILTER + SORT SECTION -->
+<section class="filter-section">
+    <h2>Sort and Filter</h2>
 
-            <div class="filter-group">
-                <label for="filter-level">Level:</label>
-                <select id="filter-level">
-                    <option value="all">All</option>
-                </select>
-            </div>
+    <div class="filter-bar">
+        <label>Department:
+            <select id="filterDepartment"><option value="all">All</option></select>
+        </label>
 
-            <div class="filter-group">
-                <label for="filter-credits">Credits:</label>
-                <select id="filter-credits">
-                    <option value="all">All</option>
-                </select>
-            </div>
+        <label>Level:
+            <select id="filterLevel"><option value="all">All</option></select>
+        </label>
 
-            <div class="filter-group">
-                <label for="filter-instructor">Instructor:</label>
-                <select id="filter-instructor">
-                    <option value="all">All</option>
-                </select>
-            </div>
+        <label>Credits:
+            <select id="filterCredits"><option value="all">All</option></select>
+        </label>
 
-            <div class="filter-group">
-                <label for="filter-semester">Semester:</label>
-                <select id="filter-semester">
-                    <option value="all">All</option>
-                </select>
-            </div>
+        <label>Instructor:
+            <select id="filterInstructor"><option value="all">All</option></select>
+        </label>
 
-            <button id="clear-filters">Clear filters</button>
-        </div>
+        <label>Semester:
+            <select id="filterSemester"><option value="all">All</option></select>
+        </label>
 
-        <div id="sorting">
-            <h3>Sorting</h3>
-            <label for="sort-option">Sort by:</label>
-            <select id="sort-option">
+        <button id="clearFilters">Clear</button>
+    </div>
+
+    <div class="sort-bar">
+        <label>Sort By:
+            <select id="sortSelect">
                 <option value="none">None</option>
-                <option value="title-asc">Title (A → Z)</option>
-                <option value="title-desc">Title (Z → A)</option>
-                <option value="id-asc">ID (A → Z)</option>
-                <option value="id-desc">ID (Z → A)</option>
-                <option value="semester-asc">Semester (oldest → newest)</option>
-                <option value="semester-desc">Semester (newest → oldest)</option>
+                <option value="id-asc">ID (A–Z)</option>
+                <option value="id-desc">ID (Z–A)</option>
+                <option value="title-asc">Title (A–Z)</option>
+                <option value="title-desc">Title (Z–A)</option>
+                <option value="sem-asc">Semester (Earliest first)</option>
+                <option value="sem-desc">Semester (Latest first)</option>
             </select>
-        </div>
-    </section>
+        </label>
+    </div>
 
-    <!-- Main content: list + details -->
-    <main id="main-content">
-        <section id="list-area">
-            <h2>3. Course List</h2>
-            <div id="course-list">
-                <p class="hint">No data loaded yet. Please select a JSON file.</p>
-            </div>
-        </section>
+</section>
 
-        <section id="details-area">
-            <h2>Course Details</h2>
-            <div id="course-details">
-                <p class="hint">Click a course on the left to see its details here.</p>
-            </div>
-        </section>
-    </main>
+<!-- MAIN CONTENT (LIST + DETAILS) -->
+<section class="main-area">
+    <div class="course-list" id="courseList"></div>
+    <div class="course-details" id="courseDetails">
+        <p>Select a course to view details.</p>
+    </div>
+</section>
 
-    <footer>
-        <p>Mini Project 2 – Course Explorer</p>
-    </footer>
+<script src="script.js"></script>
 
-    <script src="script.js"></script>
 </body>
 </html>
+
