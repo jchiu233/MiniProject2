@@ -1,132 +1,75 @@
-/* Mini Project 2 - Course Explorer
-   Simple layout and visual separation of sections. */
-
 body {
     font-family: Arial, sans-serif;
     margin: 0;
-    padding: 0;
-    background-color: #f7f7f7;
+    padding: 20px;
+    background: #fafafa;
 }
 
-header, footer {
-    background-color: #334155;
-    color: white;
-    padding: 1rem 2rem;
-}
-
-header h1 {
-    margin: 0;
-}
-
-footer {
+.title {
     text-align: center;
-    font-size: 0.85rem;
+    font-size: 32px;
+    margin-bottom: 30px;
 }
 
-section {
-    padding: 1rem 2rem;
-    box-sizing: border-box;
+.load-section, .filter-section {
+    background: #f2f2f2;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 6px;
 }
 
-#load-area, #controls-area {
-    background-color: #e5e7eb;
-    border-bottom: 1px solid #d1d5db;
-}
-
-#controls-area {
+.filter-bar, .sort-bar {
     display: flex;
     flex-wrap: wrap;
-    gap: 2rem;
-    align-items: flex-start;
+    gap: 15px;
+    margin-top: 10px;
 }
 
-#filters, #sorting {
-    background-color: #f9fafb;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    padding: 1rem;
+label {
+    font-weight: bold;
 }
 
-#filters {
-    flex: 3;
-}
-
-#sorting {
-    flex: 1;
-    min-width: 220px;
-}
-
-.filter-group {
-    margin-bottom: 0.5rem;
-}
-
-.filter-group label {
-    display: inline-block;
-    width: 100px;
-}
-
-.filter-group select {
-    min-width: 160px;
-}
-
-#clear-filters {
-    margin-top: 0.5rem;
-}
-
-#main-content {
+.main-area {
     display: flex;
-    gap: 2rem;
-    padding: 1rem 2rem 2rem;
+    gap: 20px;
 }
 
-#list-area, #details-area {
-    flex: 1;
-    background-color: #ffffff;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    padding: 1rem;
-    box-sizing: border-box;
-    min-height: 300px;
+.course-list {
+    width: 40%;
+    background: white;
+    border: 1px solid #ccc;
+    padding: 10px;
+    height: 600px;
+    overflow-y: auto;
 }
 
-#course-list {
-    margin-top: 0.5rem;
+.course-details {
+    flex-grow: 1;
+    background: white;
+    border: 1px solid #ccc;
+    padding: 20px;
+    height: 600px;
+    overflow-y: auto;
 }
 
 .course-item {
-    padding: 0.5rem;
-    border-bottom: 1px solid #e5e7eb;
+    padding: 10px;
+    margin-bottom: 6px;
+    background: #eee;
+    border-radius: 4px;
     cursor: pointer;
 }
 
 .course-item:hover {
-    background-color: #f3f4f6;
+    background: #ddd;
 }
 
-.course-item strong {
-    display: block;
-}
-
-#course-details {
-    margin-top: 0.5rem;
-}
-
-#course-details p {
-    margin: 0.25rem 0;
-}
-
-#error-area {
-    padding: 0.75rem 2rem;
-    background-color: #fee2e2;
-    color: #7f1d1d;
-    border-bottom: 1px solid #fecaca;
+.error {
+    color: red;
+    font-weight: bold;
 }
 
 .hidden {
     display: none;
 }
 
-.hint {
-    font-size: 0.9rem;
-    color: #6b7280;
-}
