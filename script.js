@@ -1,3 +1,7 @@
+//script.js
+//Mini Project 2 
+
+
 // Course class
 class Course {
     constructor(id, title, department, level, credits, instructor, semester, description) {
@@ -304,6 +308,7 @@ levelFilter.addEventListener("change", applyFiltersAndSorting);
 creditsFilter.addEventListener("change", applyFiltersAndSorting);
 instructorFilter.addEventListener("change", applyFiltersAndSorting);
 sortSelect.addEventListener("change", applyFiltersAndSorting);
+
 
 
 
