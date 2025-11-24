@@ -1,417 +1,309 @@
-// Mini Project 2 - Course Explorer
-// Student Name: Your Name
-// Student Number: 000000000
-// File: script.js
-//
-// Loads course data from a JSON file, wraps each entry in a Course class,
-// and supports filtering + sorting via array methods and DOM updates.
+// Course class
+class Course {
+    constructor(id, title, department, level, credits, instructor, semester, description) {
+        this.id = id;
+        this.title = title;
+        this.department = department;
+        this.level = level;
+        this.credits = credits;
+        this.instructor = instructor;
+        this.semester = semester;
+        this.description = description;
+    }
 
-// ------------- Global state -------------
+    // Create a Course instance from a plain object
+    static fromObject(obj, index) {
+        // Provide safe defaults for missing data
+        const id = obj.id || `UNKNOWN_${index}`;
+        const title = obj.title || "Unknown Title";
+        const department = obj.department || "Unknown Department";
+        const level = typeof obj.level === "number" ? obj.level : NaN;
+        const credits = typeof obj.credits === "number" ? obj.credits : NaN;
 
-/** @type {Course[]} */
-let allCourses = [];
-/** @type {Course[]} */
-let currentCourses = [];
+        // Null or missing instructor 
+        const instructor = obj.instructor ? obj.instructor : "TBA";
+
+        const semester = obj.semester || "Unknown Semester";
+        const description = obj.description || "No description available.";
+
+        return new Course(id, title, department, level, credits, instructor, semester, description);
+    }
+}
+
+// Global state
+let allCourses = [];    // All Course objects
+let filteredCourses = []; // After filters + sorting
 
 // DOM references
-let fileInput;
-let errorArea;
-let courseListDiv;
-let courseDetailsDiv;
-
-// Filter selects
-let filterDepartment;
-let filterLevel;
-let filterCredits;
-let filterInstructor;
-let filterSemester;
-
-// Sorting
-let sortSelect;
-let clearFiltersButton;
-
-// ------------- Course class -------------
-
-class Course {
-    /**
-     * Construct a Course from a raw data object.
-     * Expected fields: id, title, department, level,
-     * credits, instructor, description, semester.
-     */
-    constructor(raw) {
-        this.id = raw.id || "Unknown ID";
-        this.title = raw.title || "Untitled Course";
-        this.department = raw.department || "Unknown Department";
-        this.level = (raw.level !== undefined && raw.level !== null)
-            ? raw.level
-            : "Unknown";
-        this.credits = (raw.credits !== undefined && raw.credits !== null)
-            ? raw.credits
-            : "Unknown";
-        this.instructor = raw.instructor || "TBA";
-        this.description = raw.description || "No description provided.";
-        this.semester = raw.semester || "Unknown Semester";
-    }
-
-    /**
-     * Short label used in the course list.
-     */
-    getListLabel() {
-        return this.id + ": " + this.title;
-    }
-
-    /**
-     * Create a DOM element containing detailed information about the course.
-     */
-    createDetailsElement() {
-        const container = document.createElement("div");
-
-        const titleEl = document.createElement("h3");
-        titleEl.textContent = this.title + " (" + this.id + ")";
-        container.appendChild(titleEl);
-
-        const pDept = document.createElement("p");
-        pDept.textContent = "Department: " + this.department;
-        container.appendChild(pDept);
-
-        const pLevel = document.createElement("p");
-        pLevel.textContent = "Level: " + this.level;
-        container.appendChild(pLevel);
-
-        const pCredits = document.createElement("p");
-        pCredits.textContent = "Credits: " + this.credits;
-        container.appendChild(pCredits);
-
-        const pInstructor = document.createElement("p");
-        pInstructor.textContent = "Instructor: " + this.instructor;
-        container.appendChild(pInstructor);
-
-        const pSemester = document.createElement("p");
-        pSemester.textContent = "Semester: " + this.semester;
-        container.appendChild(pSemester);
-
-        const pDesc = document.createElement("p");
-        pDesc.textContent = "Description: " + this.description;
-        container.appendChild(pDesc);
-
-        return container;
-    }
-}
-
-// ------------- Initialization -------------
-
-window.addEventListener("DOMContentLoaded", () => {
-    fileInput = document.getElementById("file-input");
-    errorArea = document.getElementById("error-area");
-    courseListDiv = document.getElementById("course-list");
-    courseDetailsDiv = document.getElementById("course-details");
-
-    filterDepartment = document.getElementById("filter-department");
-    filterLevel = document.getElementById("filter-level");
-    filterCredits = document.getElementById("filter-credits");
-    filterInstructor = document.getElementById("filter-instructor");
-    filterSemester = document.getElementById("filter-semester");
-
-    sortSelect = document.getElementById("sort-option");
-    clearFiltersButton = document.getElementById("clear-filters");
-
-    fileInput.addEventListener("change", handleFileSelect);
-
-    filterDepartment.addEventListener("change", updateDisplay);
-    filterLevel.addEventListener("change", updateDisplay);
-    filterCredits.addEventListener("change", updateDisplay);
-    filterInstructor.addEventListener("change", updateDisplay);
-    filterSemester.addEventListener("change", updateDisplay);
-
-    clearFiltersButton.addEventListener("click", () => {
-        resetFilters();
-        updateDisplay();
-    });
-
-    sortSelect.addEventListener("change", updateDisplay);
-});
-
-// ------------- File loading & parsing -------------
-
-/**
- * Handle file selection from <input type="file">.
- * Uses FileReader to read text and JSON.parse to create Course objects.
- */
-function handleFileSelect(event) {
-    clearError();
-    courseDetailsDiv.innerHTML =
-        '<p class="hint">Click a course on the left to see its details here.</p>';
-
-    const file = event.target.files[0];
-    if (!file) {
-        showError("No file selected.");
-        return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-        try {
-            const text = reader.result;
-            const rawData = JSON.parse(text);
-
-            if (!Array.isArray(rawData)) {
-                throw new Error("JSON does not contain an array of courses.");
-            }
-
-            allCourses = rawData.map(obj => new Course(obj));
-
-            populateFilterDropdowns(allCourses);
-            updateDisplay();
-        } catch (err) {
-            showError("Error reading JSON: " + err.message);
-            allCourses = [];
-            currentCourses = [];
-            renderCourseList([]);
-        }
-    };
-
-    reader.onerror = () => {
-        showError("Failed to read file.");
-    };
-
-    reader.readAsText(file);
-}
-
-// ------------- Filters & sorting -------------
-
-/**
- * Populate dropdown filter options using unique values from the data.
- * Uses Set to gather unique values (as required).
- */
-function populateFilterDropdowns(courses) {
-    function setOptions(selectElement, values) {
-        selectElement.innerHTML = "";
-        const allOption = document.createElement("option");
-        allOption.value = "all";
-        allOption.textContent = "All";
-        selectElement.appendChild(allOption);
-
-        values.forEach(value => {
-            const opt = document.createElement("option");
-            opt.value = String(value);
-            opt.textContent = String(value);
-            selectElement.appendChild(opt);
-        });
-    }
-
-    const departments = new Set();
-    const levels = new Set();
-    const credits = new Set();
-    const instructors = new Set();
-    const semesters = new Set();
-
-    for (const c of courses) {
-        if (c.department) departments.add(c.department);
-        if (c.level !== "Unknown") levels.add(c.level);
-        if (c.credits !== "Unknown") credits.add(c.credits);
-        if (c.instructor) instructors.add(c.instructor);
-        if (c.semester) semesters.add(c.semester);
-    }
-
-    const departmentsArr = Array.from(departments).sort();
-    const levelsArr = Array.from(levels).sort((a, b) => Number(a) - Number(b));
-    const creditsArr = Array.from(credits).sort((a, b) => Number(a) - Number(b));
-    const instructorsArr = Array.from(instructors).sort();
-    const semestersArr = Array.from(semesters).sort(compareSemesterAscending);
-
-    setOptions(filterDepartment, departmentsArr);
-    setOptions(filterLevel, levelsArr);
-    setOptions(filterCredits, creditsArr);
-    setOptions(filterInstructor, instructorsArr);
-    setOptions(filterSemester, semestersArr);
-
-    resetFilters();
-}
-
-/**
- * Reset all filters and sorting.
- */
-function resetFilters() {
-    filterDepartment.value = "all";
-    filterLevel.value = "all";
-    filterCredits.value = "all";
-    filterInstructor.value = "all";
-    filterSemester.value = "all";
-    sortSelect.value = "none";
-}
-
-/**
- * Recompute the current visible courses based on filters + sorting,
- * and re-render the course list.
- * Uses Array.prototype.filter and Array.prototype.sort.
- */
-function updateDisplay() {
-    if (!allCourses || allCourses.length === 0) {
-        renderCourseList([]);
-        return;
-    }
-
-    currentCourses = allCourses.filter(course => {
-        if (filterDepartment.value !== "all" &&
-            String(course.department) !== filterDepartment.value) {
-            return false;
-        }
-        if (filterLevel.value !== "all" &&
-            String(course.level) !== filterLevel.value) {
-            return false;
-        }
-        if (filterCredits.value !== "all" &&
-            String(course.credits) !== filterCredits.value) {
-            return false;
-        }
-        if (filterInstructor.value !== "all" &&
-            String(course.instructor) !== filterInstructor.value) {
-            return false;
-        }
-        if (filterSemester.value !== "all" &&
-            String(course.semester) !== filterSemester.value) {
-            return false;
-        }
-        return true;
-    });
-
-    const sortValue = sortSelect.value;
-    if (sortValue !== "none") {
-        currentCourses.sort((a, b) => compareCourses(a, b, sortValue));
-    }
-
-    renderCourseList(currentCourses);
-
-    courseDetailsDiv.innerHTML =
-        '<p class="hint">Click a course on the left to see its details here.</p>';
-}
-
-/**
- * Compare function for different sorting options.
- */
-function compareCourses(a, b, sortValue) {
-    switch (sortValue) {
-        case "title-asc":
-            return a.title.localeCompare(b.title);
-        case "title-desc":
-            return b.title.localeCompare(a.title);
-        case "id-asc":
-            return a.id.localeCompare(b.id);
-        case "id-desc":
-            return b.id.localeCompare(a.id);
-        case "semester-asc":
-            return compareSemesterAscending(a.semester, b.semester);
-        case "semester-desc":
-            return -compareSemesterAscending(a.semester, b.semester);
-        default:
-            return 0;
-    }
-}
-
-/**
- * Compare two semester strings like "Fall 2025".
- * Winter < Spring < Summer < Fall within the same year.
- */
-function compareSemesterAscending(semA, semB) {
-    const parsedA = parseSemester(semA);
-    const parsedB = parseSemester(semB);
-
-    if (parsedA.year !== parsedB.year) {
-        return parsedA.year - parsedB.year;
-    }
-    return parsedA.termOrder - parsedB.termOrder;
-}
-
-/**
- * Convert "Fall 2025" → { year: 2025, termOrder: 4 }.
- * If parsing fails, push to the end.
- */
-function parseSemester(sem) {
-    const parts = sem.trim().split(" ");
-    if (parts.length !== 2) {
-        return { year: Number.MAX_SAFE_INTEGER, termOrder: 99 };
-    }
-
-    const season = parts[0];
-    const year = Number(parts[1]) || Number.MAX_SAFE_INTEGER;
-
-    let termOrder;
-    switch (season) {
-        case "Winter":
-            termOrder = 1;
-            break;
-        case "Spring":
-            termOrder = 2;
-            break;
-        case "Summer":
-            termOrder = 3;
-            break;
-        case "Fall":
-            termOrder = 4;
-            break;
-        default:
-            termOrder = 99;
-    }
-
-    return { year, termOrder };
-}
-
-// ------------- Rendering -------------
-
-/**
- * Render a list of courses into the #course-list div.
- */
-function renderCourseList(courses) {
-    courseListDiv.innerHTML = "";
-
-    if (!courses || courses.length === 0) {
-        const p = document.createElement("p");
-        p.textContent = "No courses to display. Try loading data or changing filters.";
-        courseListDiv.appendChild(p);
-        return;
-    }
-
-    courses.forEach(course => {
-        const item = document.createElement("div");
-        item.className = "course-item";
-
-        const title = document.createElement("strong");
-        title.textContent = course.getListLabel();
-        item.appendChild(title);
-
-        const smallInfo = document.createElement("span");
-        smallInfo.textContent =
-            "Department: " + course.department +
-            " | Level: " + course.level +
-            " | Semester: " + course.semester;
-        item.appendChild(smallInfo);
-
-        item.addEventListener("click", () => {
-            showCourseDetails(course);
-        });
-
-        courseListDiv.appendChild(item);
-    });
-}
-
-/**
- * Show details for a single course in the details panel.
- */
-function showCourseDetails(course) {
-    courseDetailsDiv.innerHTML = "";
-    const detailsEl = course.createDetailsElement();
-    courseDetailsDiv.appendChild(detailsEl);
-}
-
-// ------------- Error handling helpers -------------
-
+const fileInput = document.getElementById("file-input");
+const fileNameSpan = document.getElementById("file-name");
+const errorMessage = document.getElementById("error-message");
+
+const departmentFilter = document.getElementById("department-filter");
+const levelFilter = document.getElementById("level-filter");
+const creditsFilter = document.getElementById("credits-filter");
+const instructorFilter = document.getElementById("instructor-filter");
+const sortSelect = document.getElementById("sort-select");
+
+const courseList = document.getElementById("course-list");
+const courseDetails = document.getElementById("course-details");
+
+// Helper: show / clear errors
 function showError(msg) {
-    errorArea.textContent = msg;
-    errorArea.classList.remove("hidden");
+    errorMessage.textContent = msg;
+    errorMessage.style.display = "block";
 }
 
 function clearError() {
-    errorArea.textContent = "";
-    errorArea.classList.add("hidden");
+    errorMessage.textContent = "";
+    errorMessage.style.display = "none";
 }
+
+// Semester parsing for sorting
+function semesterToKey(semesterStr) {
+    if (!semesterStr || typeof semesterStr !== "string") {
+        return Number.POSITIVE_INFINITY; // unknown semesters go last
+    }
+
+    const parts = semesterStr.split(" ");
+    if (parts.length !== 2) return Number.POSITIVE_INFINITY;
+
+    const term = parts[0];
+    const year = parseInt(parts[1], 10);
+
+    if (isNaN(year)) return Number.POSITIVE_INFINITY;
+
+    const order = {
+        Winter: 1,
+        Spring: 2,
+        Summer: 3,
+        Fall: 4
+    };
+
+    const termOrder = order[term] || 5;
+    // e.g. 2026*10 + 4
+    return year * 10 + termOrder;
+}
+
+// Build filter dropdowns using Sets
+function populateFilters() {
+    // Start with "All" options
+    departmentFilter.innerHTML = '<option value="All">All</option>';
+    levelFilter.innerHTML = '<option value="All">All</option>';
+    creditsFilter.innerHTML = '<option value="All">All</option>';
+    instructorFilter.innerHTML = '<option value="All">All</option>';
+
+    const deptSet = new Set();
+    const levelSet = new Set();
+    const creditSet = new Set();
+    const instructorSet = new Set();
+
+    allCourses.forEach(course => {
+        if (course.department) deptSet.add(course.department);
+        if (!isNaN(course.level)) levelSet.add(course.level);
+        if (!isNaN(course.credits)) creditSet.add(course.credits);
+        if (course.instructor) instructorSet.add(course.instructor);
+    });
+
+    // Helper to append options to a select from a sorted array
+    function appendOptions(select, values) {
+        values.forEach(v => {
+            const opt = document.createElement("option");
+            opt.value = String(v);
+            opt.textContent = String(v);
+            select.appendChild(opt);
+        });
+    }
+
+    appendOptions(departmentFilter, Array.from(deptSet).sort());
+    appendOptions(levelFilter, Array.from(levelSet).sort((a, b) => a - b));
+    appendOptions(creditsFilter, Array.from(creditSet).sort((a, b) => a - b));
+    appendOptions(instructorFilter, Array.from(instructorSet).sort());
+
+    // Enable filters + sorting now that data is loaded
+    departmentFilter.disabled = false;
+    levelFilter.disabled = false;
+    creditsFilter.disabled = false;
+    instructorFilter.disabled = false;
+    sortSelect.disabled = false;
+}
+
+// Filtering + sorting
+function applyFiltersAndSorting() {
+    if (allCourses.length === 0) {
+        filteredCourses = [];
+        renderCourseList();
+        courseDetails.innerHTML = "<p>No courses loaded.</p>";
+        return;
+    }
+
+    // Apply filters using Array.filter (required by rubric)
+    filteredCourses = allCourses.filter(course => {
+        // Department
+        if (departmentFilter.value !== "All" &&
+            course.department !== departmentFilter.value) {
+            return false;
+        }
+
+        // Level
+        if (levelFilter.value !== "All") {
+            const levelValue = parseInt(levelFilter.value, 10);
+            if (isNaN(levelValue) || course.level !== levelValue) {
+                return false;
+            }
+        }
+
+        // Credits
+        if (creditsFilter.value !== "All") {
+            const creditsValue = parseInt(creditsFilter.value, 10);
+            if (isNaN(creditsValue) || course.credits !== creditsValue) {
+                return false;
+            }
+        }
+
+        // Instructor
+        if (instructorFilter.value !== "All" &&
+            course.instructor !== instructorFilter.value) {
+            return false;
+        }
+
+        return true;
+    });
+
+    // Sorting
+    const sortValue = sortSelect.value;
+
+    if (sortValue === "id-asc") {
+        filteredCourses.sort((a, b) => a.id.localeCompare(b.id));
+    } else if (sortValue === "id-desc") {
+        filteredCourses.sort((a, b) => b.id.localeCompare(a.id));
+    } else if (sortValue === "title-asc") {
+        filteredCourses.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (sortValue === "title-desc") {
+        filteredCourses.sort((a, b) => b.title.localeCompare(a.title));
+    } else if (sortValue === "semester-asc") {
+        filteredCourses.sort(
+            (a, b) => semesterToKey(a.semester) - semesterToKey(b.semester)
+        );
+    } else if (sortValue === "semester-desc") {
+        filteredCourses.sort(
+            (a, b) => semesterToKey(b.semester) - semesterToKey(a.semester)
+        );
+    }
+    // "none" -> keep whatever order they already have
+
+    renderCourseList();
+
+    if (filteredCourses.length > 0) {
+        showCourseDetails(filteredCourses[0]);
+        highlightActiveItem(filteredCourses[0].id);
+    } else {
+        courseDetails.innerHTML = "<p>No courses match the selected filters.</p>";
+    }
+}
+
+// Rendering
+function renderCourseList() {
+    courseList.innerHTML = "";
+
+    filteredCourses.forEach(course => {
+        const li = document.createElement("li");
+
+        const button = document.createElement("button");
+        button.textContent = course.id;
+        button.className = "course-item";
+        button.addEventListener("click", () => {
+            showCourseDetails(course);
+            highlightActiveItem(course.id);
+        });
+
+        li.appendChild(button);
+        courseList.appendChild(li);
+    });
+}
+
+function highlightActiveItem(courseId) {
+    const buttons = document.querySelectorAll(".course-item");
+    buttons.forEach(btn => {
+        if (btn.textContent === courseId) {
+            btn.classList.add("active");
+        } else {
+            btn.classList.remove("active");
+        }
+    });
+}
+
+function showCourseDetails(course) {
+    const levelText = isNaN(course.level) ? "Unknown" : course.level;
+    const creditsText = isNaN(course.credits) ? "Unknown" : course.credits;
+
+    courseDetails.innerHTML = `
+        <h2>${course.id}</h2>
+        <p><strong>Title:</strong> ${course.title}</p>
+        <p><strong>Department:</strong> ${course.department}</p>
+        <p><strong>Level:</strong> ${levelText}</p>
+        <p><strong>Credits:</strong> ${creditsText}</p>
+        <p><strong>Instructor:</strong> ${course.instructor}</p>
+        <p><strong>Semester:</strong> ${course.semester}</p>
+        <p>${course.description}</p>
+    `;
+}
+
+// File loading
+fileInput.addEventListener("change", function () {
+    clearError();
+    courseList.innerHTML = "";
+    courseDetails.innerHTML = "<p>Loading courses…</p>";
+
+    const file = this.files[0];
+    if (!file) {
+        showError("Please select a JSON file.");
+        courseDetails.innerHTML = "<p>No file selected.</p>";
+        return;
+    }
+
+    fileNameSpan.textContent = file.name;
+
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+        try {
+            const text = e.target.result;
+            const rawData = JSON.parse(text);
+
+            if (!Array.isArray(rawData)) {
+                // For this project, we require an array as root
+                throw new Error("Root JSON value is not an array.");
+            }
+
+            allCourses = rawData.map((obj, index) => Course.fromObject(obj, index));
+            populateFilters();
+            applyFiltersAndSorting();
+        } catch (err) {
+            // Show the exact required message for bad JSON
+            showError("Invalid JSON file format.");
+            console.error(err);
+            allCourses = [];
+            filteredCourses = [];
+            courseList.innerHTML = "";
+            courseDetails.innerHTML = "<p>Unable to load courses.</p>";
+        }
+    };
+
+    reader.onerror = function () {
+        showError("Error reading file.");
+        courseDetails.innerHTML = "<p>Unable to load courses.</p>";
+    };
+
+    reader.readAsText(file);
+});
+
+// Re-apply filters/sorting when any control changes
+departmentFilter.addEventListener("change", applyFiltersAndSorting);
+levelFilter.addEventListener("change", applyFiltersAndSorting);
+creditsFilter.addEventListener("change", applyFiltersAndSorting);
+instructorFilter.addEventListener("change", applyFiltersAndSorting);
+sortSelect.addEventListener("change", applyFiltersAndSorting);
+
+
+
